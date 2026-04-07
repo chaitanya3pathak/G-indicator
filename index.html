@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>G-Indicator</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f2f2f2;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 420px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 15px;
+    }
+
+    button {
+      background: #ff6b00;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .card {
+      background: #fff3cd;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      text-align: left;
+    }
+
+    .no-data {
+      color: red;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>🚇 G-Indicator</h2>
+
+  <select id="source"></select>
+  <select id="destination"></select>
+
+  <button onclick="searchMetro()">Find Metro</button>
+
+  <div id="results"></div>
+</div>
+
+<script>
+
+// ✅ Stations
+const stations = [
+  "APMC",
+  "Old High Court",
+  "Motera Stadium",
+  "Koteshwar Road",
+  "GNLU",
+  "Info City",
+  "Sachivalaya",
+  "Mahatma Mandir",
+  "GIFT City"
+];
+
+// Populate dropdowns
+const sourceDropdown = document.getElementById("source");
+const destDropdown = document.getElementById("destination");
+
+stations.forEach(st => {
+  sourceDropdown.innerHTML += `<option value="${st}">${st}</option>`;
+  destDropdown.innerHTML += `<option value="${st}">${st}</option>`;
+});
+
+
+// ✅ Station offsets (minutes from APMC)
+const offsets = {
+  "APMC": 0,
+  "Old High Court": 15,
+  "Motera Stadium": 33,
+  "Koteshwar Road": 36,
+  "GNLU": 51,
+  "Info City": 57,
+  "Sachivalaya": 63,
+  "Mahatma Mandir": 70,
+  "GIFT City": 75
+};
+
+// ✅ Config
+const startTime = "06:45";
+const endTime = "19:30";
+const frequency = 12;
+
+
+// 🚇 Generate forward trains
+function generateMetroData() {
+
+  let data = [];
+
+  let current = new Date();
+  let [sh, sm] = startTime.split(":");
+  current.setHours(sh, sm, 0, 0);
+
+  let end = new Date();
+  let [eh, em] = endTime.split(":");
+  end.setHours(eh, em, 0, 0);
+
+  while (current <= end) {
+
+    let stops = {};
+
+    for (let station in offsets) {
+      let t = new Date(current.getTime() + offsets[station] * 60000);
+
+      let hh = String(t.getHours()).padStart(2, '0');
+      let mm = String(t.getMinutes()).padStart(2, '0');
+
+      stops[station] = `${hh}:${mm}`;
+    }
+
+    data.push({
+      train: stops["APMC"],
+      stops: stops
+    });
+
+    current.setMinutes(current.getMinutes() + frequency);
+  }
+
+  return data;
+}
+
+
+// 🔁 Generate reverse trains
+function generateReverseData(forwardData) {
+  return forwardData.map(train => {
+    const reversedStops = {};
+    Object.keys(train.stops).reverse().forEach(k => {
+      reversedStops[k] = train.stops[k];
+    });
+
+    return {
+      train: Object.values(reversedStops)[0],
+      stops: reversedStops
+    };
+  });
+}
+
+
+// ✅ Final dataset
+const metroData = generateMetroData();
+const reverseMetroData = generateReverseData(metroData);
+const allMetroData = [...metroData, ...reverseMetroData];
+
+
+// 🚇 SEARCH FUNCTION
+function searchMetro() {
+
+  const src = sourceDropdown.value;
+  const dest = destDropdown.value;
+  const resultDiv = document.getElementById("results");
+
+  resultDiv.innerHTML = "";
+
+  if (src === dest) {
+    resultDiv.innerHTML = "<div class='no-data'>Select different stations</div>";
+    return;
+  }
+
+  const now = new Date();
+  let result = [];
+
+  allMetroData.forEach(train => {
+
+    const stops = train.stops;
+
+    if (!(src in stops) || !(dest in stops)) return;
+
+    const stationKeys = Object.keys(stops);
+    const srcIndex = stationKeys.indexOf(src);
+    const destIndex = stationKeys.indexOf(dest);
+
+    if (srcIndex >= destIndex) return;
+
+    const srcTime = stops[src];
+    const destTime = stops[dest];
+
+    const [h, m] = srcTime.split(":");
+    const metroTime = new Date();
+    metroTime.setHours(h, m, 0, 0);
+
+    if (metroTime >= now) {
+      result.push({
+        departure: srcTime,
+        arrival: destTime
+      });
+    }
+  });
+
+  result.sort((a, b) => a.departure.localeCompare(b.departure));
+
+  if (result.length === 0) {
+    resultDiv.innerHTML = "<div class='no-data'>No upcoming metros</div>";
+    return;
+  }
+
+  result.forEach(r => {
+
+    const [h, m] = r.departure.split(":");
+    const metroTime = new Date();
+    metroTime.setHours(h, m, 0, 0);
+
+    const diff = Math.floor((metroTime - now) / 60000);
+
+    resultDiv.innerHTML += `
+      <div class="card">
+        🚆 Departure: ${r.departure}<br>
+        📍 Arrival: ${r.arrival}<br>
+        ⏱ In ${diff} mins
+      </div>
+    `;
+  });
+}
+
+</script>
+
+</body>
+</html>
