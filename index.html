@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -485,6 +486,8 @@
       &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
       &#9888; Temporary changes in metro schedule may not be updated in the app. This is for reference and guidance only.
       &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+      <strong>&#128260; Updated as per latest timetable published on www.gujaratmetrorail.com (Effective 18 May 2026)</strong>
+      &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
       &#128279; Data Source: <a href="https://www.gujaratmetrorail.com" target="_blank">https://www.gujaratmetrorail.com</a>
       &nbsp;&nbsp;&nbsp;
     </span>
@@ -585,10 +588,11 @@
   <!-- ── Peak Info Notice ── -->
   <div class="notice">
     &#9889; Peak hours: 8–11 AM &amp; 5–8 PM.
-    Line 1: every 9 min (peak) / 10 min (off-peak).
-    Line 2: every 10 min (peak) / 12 min (off-peak).
-    First train ~6:20 AM &middot; Last train ~10:09 PM.
-    Times are approximate per published GMRC timetable.
+    Line 1: every 7 min (weekday peak) / 10 min (weekday off-peak) / 12 min (Sun &amp; Sat off-peak) / 20 min (early &amp; late).
+    Line 2: every 12 min till 10 PM / 20 min from 10 PM to 11 PM.
+    Line 3: average 40 min till 8 AM / average 24 min till 9 PM.
+    Line 4: average 49 min till 10:18 AM / metro resumes 4:06 PM with average 57 min.
+    First trains: L1 6:20 AM, L2 6:16 AM, L3 6:40 AM, L4 7:36 AM &middot; Last terminal departures: L1 11:00 PM, L2 11:10 PM, L3 9:20 PM, L4 7:13 PM.
   </div>
 
   <!-- ── Disclaimer ── -->
@@ -620,7 +624,7 @@
     const LINE2 = [
       "APMC","Jivraj Park","Rajivnagar","Shreyas","Paldi","Gandhigram",
       "Old High Court","Usmanpura","Vijay Nagar","Vadaj","Ranip",
-      "Sabarmati Rly. Station","AEC","Sabarmati","Motera Stadium"
+      "Sabarmati Rly. Station","AEC","Sabarmati","Motera Stadium","Koteshwar Road"
     ];
     const LINE3 = [
       "Motera Stadium","Koteshwar Road","Vishwakarma College","Tapovan Circle",
@@ -636,11 +640,102 @@
     const INTERCHANGE_L3_L4 = "GNLU";
 
     const LINE_DATA = {
-      1: { stations: LINE1, label: "Line 1", shortLabel: "L1", pill: "pill-l1", segColor: "#e53935", peak: 9, offpeak: 10, firstH: 6, firstM: 20, lastH: 22, lastM: 0 },
-      2: { stations: LINE2, label: "Line 2", shortLabel: "L2", pill: "pill-l2", segColor: "#1565c0", peak: 10, offpeak: 12, firstH: 6, firstM: 20, lastH: 22, lastM: 9 },
-      3: { stations: LINE3, label: "Line 3", shortLabel: "L3", pill: "pill-l3", segColor: "#2e7d32", peak: null, offpeak: null, firstH: 7, firstM: 26, lastH: 19, lastM: 22 },
-      4: { stations: LINE4, label: "Line 4", shortLabel: "L4", pill: "pill-l4", segColor: "#6a1b9a", peak: null, offpeak: null, firstH: 7, firstM: 43, lastH: 18, lastM: 13 }
+      1: { stations: LINE1, label: "Line 1", shortLabel: "L1", pill: "pill-l1", segColor: "#e53935", travel: 45, firstH: 6, firstM: 20, lastH: 23, lastM: 0, directions: { forward: { firstH: 6, firstM: 20, lastH: 23, lastM: 0 }, reverse: { firstH: 6, firstM: 20, lastH: 23, lastM: 0 } } },
+      2: { stations: LINE2, label: "Line 2", shortLabel: "L2", pill: "pill-l2", segColor: "#1565c0", travel: 35, firstH: 6, firstM: 16, lastH: 23, lastM: 10, directions: { forward: { firstH: 6, firstM: 20, lastH: 23, lastM: 10 }, reverse: { firstH: 6, firstM: 16, lastH: 23, lastM: 0 } } },
+      3: { stations: LINE3, label: "Line 3", shortLabel: "L3", pill: "pill-l3", segColor: "#2e7d32", travel: 46, firstH: 6, firstM: 40, lastH: 21, lastM: 20, directions: { forward: { firstH: 6, firstM: 55, lastH: 21, lastM: 20 }, reverse: { firstH: 6, firstM: 40, lastH: 21, lastM: 0 } } },
+      4: { stations: LINE4, label: "Line 4", shortLabel: "L4", pill: "pill-l4", segColor: "#6a1b9a", travel: 6, firstH: 7, firstM: 36, lastH: 19, lastM: 13, directions: { forward: { firstH: 7, firstM: 36, lastH: 18, lastM: 57 }, reverse: { firstH: 7, firstM: 48, lastH: 19, lastM: 13 } } }
     };
+
+    const EXACT_TIMETABLE_STOPS = ["APMC","Old High Court","Motera Stadium","Koteshwar Road","GNLU","Infocity","Sachivalaya","Mahatma Mandir","Gift City"];
+    const EXACT_TIMETABLE_REVERSE_STOPS = ["Gift City","Mahatma Mandir","Sachivalaya","Infocity","GNLU","Koteshwar Road","Motera Stadium","Old High Court","APMC"];
+    const EXACT_TIMETABLE_FORWARD = [
+      ["06:20","06:34","06:52","06:55","07:10","07:19","07:27","07:38",null],
+      ["06:45","07:00","07:18","07:21","07:36",null,null,null,"07:42"],
+      ["06:58","07:12","07:30","07:33","07:48","07:57","08:05","08:16",null],
+      ["07:23","07:37","07:55","07:58","08:13","08:22","08:30","08:41",null],
+      ["07:34","07:47","08:06","08:09","08:24",null,null,null,"08:30"],
+      ["07:47","08:01","08:19","08:22","08:37","08:46","08:54","09:05",null],
+      ["08:03","08:17","08:35","08:38","08:54",null,null,null,"09:01"],
+      ["08:17","08:31","08:49","08:52","09:07","09:16","09:24","09:35",null],
+      ["08:33","08:47","09:05","09:08","09:23","09:32","09:40","09:51",null],
+      ["08:59","09:13","09:31","09:34","09:49","09:58","10:06","10:17",null],
+      ["09:11","09:25","09:43","09:46","10:01",null,null,null,"10:07"],
+      ["09:19","09:33","09:51","09:54","10:09","10:18","10:26","10:37",null],
+      ["09:48","10:02","10:20","10:23","10:38","10:47","10:55","11:06",null],
+      ["10:12","10:26","10:44","10:47","11:02","11:11","11:19","11:30",null],
+      ["10:36","10:50","11:08","11:11","11:26","11:35","11:43","11:54",null],
+      ["10:59","11:13","11:32","11:35","11:50","11:59","12:07","12:18",null],
+      ["11:25","11:39","11:57","12:00","12:15","12:24","12:32","12:43",null],
+      ["11:49","12:03","12:21","12:24","12:39","12:48","12:56","13:07",null],
+      ["12:13","12:27","12:45","12:48","13:03","13:12","13:20","13:31",null],
+      ["12:37","12:51","13:09","13:12","13:27","13:36","13:44","13:55",null],
+      ["13:02","13:16","13:34","13:37","13:52","14:01","14:09","14:20",null],
+      ["13:27","13:41","13:59","14:02","14:17","14:26","14:34","14:45",null],
+      ["13:50","14:04","14:22","14:25","14:40","14:49","14:57","15:08",null],
+      ["14:15","14:29","14:47","14:50","15:05","15:14","15:22","15:33",null],
+      ["14:40","14:54","15:12","15:15","15:30","15:39","15:47","15:58",null],
+      ["15:04","15:18","15:36","15:39","15:54","16:03","16:11","16:22",null],
+      ["15:16","15:30","15:48","15:51","16:06",null,null,null,"16:12"],
+      ["15:28","15:42","16:00","16:03","16:18","16:27","16:35","16:46",null],
+      ["15:53","16:07","16:25","16:28","16:43","16:52","17:00","17:11",null],
+      ["16:03","16:17","16:35","16:38","16:53",null,null,null,"16:59"],
+      ["16:17","16:31","16:49","16:52","17:07","17:16","17:24","17:35",null],
+      ["16:40","16:54","17:13","17:16","17:31","17:40","17:48","17:59",null],
+      ["17:06","17:20","17:38","17:41","17:56","18:05","18:13","18:24",null],
+      ["17:16","17:30","17:48","17:51","18:06",null,null,null,"18:12"],
+      ["17:30","17:44","18:02","18:05","18:20","18:29","18:37","18:48",null],
+      ["17:54","18:08","18:26","18:29","18:44","18:53","19:01","19:12",null],
+      ["18:06","18:20","18:39","18:42","18:57",null,null,null,"19:03"],
+      ["18:18","18:32","18:50","18:53","19:08","19:17","19:25","19:36",null],
+      ["18:43","18:57","19:15","19:18","19:33","19:42","19:50","20:01",null],
+      ["19:08","19:22","19:40","19:43","19:58","20:07","20:15","20:26",null],
+      ["19:42","19:56","20:14","20:17","20:32","20:41","20:49","21:00",null],
+      ["20:45","20:59","21:17","21:20","21:35","21:44","21:52","22:03",null]
+    ];
+    const EXACT_TIMETABLE_REVERSE = [
+      [null,"06:40","06:51","06:59","07:09","07:25","07:28","07:46","07:59"],
+      [null,"07:33","07:45","07:53","08:05","08:21","08:24","08:42","08:56"],
+      ["07:48",null,null,null,"07:55","08:09","08:12","08:30","08:44"],
+      [null,"08:00","08:12","08:19","08:30","08:46","08:49","09:07","09:21"],
+      ["08:37",null,null,null,"08:44","08:58","09:01","09:19","09:33"],
+      [null,"08:25","08:36","08:44","08:54","09:10","09:13","09:32","09:45"],
+      ["09:01",null,null,null,"09:08","09:23","09:26","09:44","09:58"],
+      [null,"08:49","09:00","09:08","09:18","09:34","09:37","09:55","10:09"],
+      [null,"09:13","09:25","09:32","09:43","09:58","10:01","10:19","10:33"],
+      [null,"09:37","09:49","09:56","10:07","10:23","10:26","10:44","10:58"],
+      ["10:18",null,null,null,"10:25","10:39","10:42","11:00","11:14"],
+      [null,"10:01","10:13","10:20","10:31","10:47","10:50","11:08","11:22"],
+      [null,"10:26","10:38","10:45","10:56","11:12","11:15","11:33","11:47"],
+      [null,"10:50","11:02","11:09","11:20","11:36","11:39","11:57","12:11"],
+      [null,"11:14","11:26","11:33","11:44","12:00","12:03","12:21","12:35"],
+      [null,"11:38","11:50","11:57","12:08","12:24","12:27","12:45","12:59"],
+      [null,"12:03","12:15","12:22","12:33","12:49","12:52","13:10","13:24"],
+      [null,"12:26","12:38","12:45","12:56","13:12","13:15","13:33","13:47"],
+      [null,"12:51","13:03","13:10","13:21","13:38","13:41","13:59","14:13"],
+      [null,"13:15","13:27","13:34","13:45","14:02","14:05","14:23","14:37"],
+      [null,"13:40","13:52","13:59","14:10","14:27","14:30","14:48","15:02"],
+      [null,"14:04","14:16","14:23","14:34","14:51","14:54","15:12","15:26"],
+      [null,"14:28","14:40","14:47","14:58","15:15","15:18","15:36","15:50"],
+      [null,"14:52","15:04","15:11","15:22","15:39","15:42","16:00","16:14"],
+      [null,"15:16","15:28","15:35","15:46","16:02","16:05","16:23","16:37"],
+      [null,"15:41","15:53","16:00","16:11","16:27","16:30","16:48","17:02"],
+      ["16:17",null,null,null,"16:24","16:39","16:42","17:00","17:14"],
+      [null,"16:06","16:18","16:25","16:36","16:52","16:55","17:13","17:27"],
+      [null,"16:30","16:42","16:49","17:00","17:17","17:20","17:38","17:52"],
+      ["17:08",null,null,null,"17:15","17:30","17:33","17:51","18:05"],
+      [null,"16:54","17:06","17:13","17:24","17:41","17:44","18:02","18:16"],
+      [null,"17:19","17:31","17:38","17:49","18:06","18:09","18:27","18:41"],
+      [null,"17:44","17:56","18:03","18:14","18:31","18:34","18:52","19:06"],
+      ["18:21",null,null,null,"18:28","18:42","18:45","19:03","19:17"],
+      [null,"18:08","18:20","18:27","18:38","18:54","18:57","19:15","19:29"],
+      [null,"18:32","18:44","18:51","19:02","19:19","19:22","19:40","19:54"],
+      ["19:13",null,null,null,"19:20","19:35","19:38","19:56","20:10"],
+      [null,"18:56","19:09","19:16","19:27","19:43","19:46","20:04","20:18"],
+      [null,"19:20","19:32","19:39","19:50","20:07","20:10","20:28","20:42"],
+      [null,"19:44","19:56","20:03","20:14","20:31","20:34","20:52","21:06"],
+      [null,"20:09","20:21","20:28","20:39","20:56","20:59","21:17","21:31"],
+      [null,"21:00","21:12","21:20","21:31","21:47","21:50","22:09","22:22"]
+    ];
 
     const STATION_LINES = {};
     Object.entries(LINE_DATA).forEach(([lineNum, data]) => {
@@ -693,7 +788,7 @@
       const groups = [
         { label: "Line 1 — East-West Corridor", stations: LINE1 },
         { label: "Line 2 — North-South Corridor", stations: LINE2 },
-        { label: "Line 3 — Motera to Mahatma Mandir", stations: LINE3 },
+        { label: "Line 3 — Motera Stadium to Mahatma Mandir", stations: LINE3 },
         { label: "Line 4 — GNLU to Gift City", stations: LINE4 }
       ];
       ['src-select', 'dst-select'].forEach(id => {
@@ -749,23 +844,94 @@
       const h = Math.floor(d / 60), m = d % 60;
       return m ? `${h}h ${m}m` : `${h}h`;
     }
-    function getSchedule(lineNum) {
+    function directionFor(src, dst, lineNum) {
+      const list = LINE_DATA[lineNum].stations;
+      return list.indexOf(src) <= list.indexOf(dst) ? 'forward' : 'reverse';
+    }
+    function parseHHMM(value) {
+      if (!value) return null;
+      const parts = value.split(':').map(Number);
+      return parts[0] * 60 + parts[1];
+    }
+    function asTimeObj(totalMin) {
+      return { h: Math.floor(totalMin / 60) % 24, m: totalMin % 60 };
+    }
+    function rowMap(row, stops) {
+      const map = {};
+      stops.forEach((station, i) => { map[station] = row[i]; });
+      return map;
+    }
+    function exactStationMinute(row, station, lineNum, dir) {
+      if (row[station]) return parseHHMM(row[station]);
+      const lineStations = LINE_DATA[lineNum].stations;
+      const routeStations = dir === 'forward' ? lineStations : [...lineStations].reverse();
+      const stationPos = routeStations.indexOf(station);
+      if (stationPos === -1) return null;
+      let prevAnchor = null, nextAnchor = null;
+      for (let i = stationPos; i >= 0; i--) {
+        if (row[routeStations[i]]) { prevAnchor = routeStations[i]; break; }
+      }
+      for (let i = stationPos; i < routeStations.length; i++) {
+        if (row[routeStations[i]]) { nextAnchor = routeStations[i]; break; }
+      }
+      if (!prevAnchor || !nextAnchor) return null;
+      return parseHHMM(row[prevAnchor]) + travelMins(prevAnchor, station, lineNum);
+    }
+    function exactSchedule(lineNum, src, dst) {
+      if (lineNum === 1) return null;
+      const dir = directionFor(src, dst, lineNum);
+      const rows = dir === 'forward' ? EXACT_TIMETABLE_FORWARD : EXACT_TIMETABLE_REVERSE;
+      const stops = dir === 'forward' ? EXACT_TIMETABLE_STOPS : EXACT_TIMETABLE_REVERSE_STOPS;
+      return rows.map(row => rowMap(row, stops)).map(row => {
+        const depMin = exactStationMinute(row, src, lineNum, dir);
+        const arrMin = exactStationMinute(row, dst, lineNum, dir);
+        if (depMin === null || arrMin === null || arrMin < depMin) return null;
+        const dep = asTimeObj(depMin);
+        const arr = asTimeObj(arrMin);
+        return { h: dep.h, m: dep.m, arrH: arr.h, arrM: arr.m };
+      }).filter(Boolean).sort((a, b) => toMin(a.h, a.m) - toMin(b.h, b.m));
+    }
+    function frequencyFor(lineNum, depMin, date) {
+      const day = date.getDay();
+      const isSaturday = day === 6;
+      const isSunday = day === 0;
+      if (lineNum === 1) {
+        if ((depMin >= toMin(6, 20) && depMin < toMin(7, 0)) || depMin >= toMin(22, 0)) return 20;
+        if ((depMin >= toMin(8, 0) && depMin < toMin(11, 0)) || (depMin >= toMin(17, 0) && depMin < toMin(20, 0))) return isSunday ? 12 : isSaturday ? 10 : 7;
+        return isSunday || isSaturday ? 12 : 10;
+      }
+      if (lineNum === 2) return depMin >= toMin(22, 0) ? 20 : 12;
+      if (lineNum === 3) return depMin < toMin(8, 0) ? 40 : 24;
+      if (lineNum === 4) return depMin < toMin(10, 18) ? 49 : 57;
+      return 30;
+    }
+    function terminalOffset(src, dst, lineNum) {
+      const list = LINE_DATA[lineNum].stations;
+      const dir = directionFor(src, dst, lineNum);
+      const sourceIndex = list.indexOf(src);
+      const terminalIndex = dir === 'forward' ? 0 : list.length - 1;
+      const totalStations = list.length - 1;
+      return Math.round((Math.abs(sourceIndex - terminalIndex) / totalStations) * LINE_DATA[lineNum].travel);
+    }
+    function getSchedule(lineNum, src, dst) {
+      const exact = src && dst ? exactSchedule(lineNum, src, dst) : null;
+      if (exact && exact.length) return exact;
       const ld = LINE_DATA[lineNum];
+      const dir = src && dst ? directionFor(src, dst, lineNum) : 'forward';
+      const terminal = ld.directions[dir];
+      const offset = src && dst ? terminalOffset(src, dst, lineNum) : 0;
       const times = [];
-      let h = ld.firstH, m = ld.firstM;
-      const lastMin = toMin(ld.lastH, ld.lastM);
-      while (toMin(h, m) <= lastMin) {
-        times.push({ h, m });
-        let interval;
-        if (!ld.peak) {
-          interval = 30;
-        } else {
-          const nowH = new Date().getHours();
-          const isPeak = (nowH >= 8 && nowH < 11) || (nowH >= 17 && nowH < 20);
-          interval = isPeak ? ld.peak : ld.offpeak;
+      const today = new Date();
+      let depMin = toMin(terminal.firstH, terminal.firstM);
+      const lastMin = toMin(terminal.lastH, terminal.lastM);
+      while (depMin <= lastMin) {
+        if (lineNum === 4 && depMin >= toMin(10, 18) && depMin < toMin(16, 6)) {
+          depMin = toMin(16, 6);
+          continue;
         }
-        m += interval;
-        if (m >= 60) { h += Math.floor(m / 60); m %= 60; }
+        const stationMin = depMin + offset;
+        times.push(asTimeObj(stationMin));
+        depMin += frequencyFor(lineNum, depMin, today);
       }
       return times;
     }
@@ -774,7 +940,7 @@
       const si = list.indexOf(src), di = list.indexOf(dst);
       if (si === -1 || di === -1) return 10;
       const totalStations = list.length - 1;
-      const totalMins = lineNum === 1 ? 45 : lineNum === 2 ? 32 : lineNum === 3 ? 46 : 8;
+      const totalMins = LINE_DATA[lineNum].travel;
       return Math.round((Math.abs(si - di) / totalStations) * totalMins) + 1;
     }
 
@@ -783,9 +949,11 @@
     function renderTrains(src, dst, lineNum, containerId) {
       const now = new Date(), nowMin = toMin(now.getHours(), now.getMinutes());
       const ld = LINE_DATA[lineNum];
-      const schedule = getSchedule(lineNum);
+      const schedule = getSchedule(lineNum, src, dst);
       const travel = travelMins(src, dst, lineNum);
-      const lastMin = toMin(ld.lastH, ld.lastM);
+      const firstRun = schedule[0] || { h: ld.firstH, m: ld.firstM };
+      const lastRun = schedule[schedule.length - 1] || { h: ld.lastH, m: ld.lastM };
+      const lastMin = toMin(lastRun.h, lastRun.m);
       const upcoming = schedule.filter(t => toMin(t.h, t.m) >= nowMin - 1);
 
       if (nowMin > lastMin + 5 || upcoming.length === 0) {
@@ -798,7 +966,7 @@
             <div class="no-trains">
               <div class="no-trains-icon">🌙</div>
               <div class="no-trains-title">No more metros today</div>
-              <div class="no-trains-sub">Metro service has ended for the day.<br>Resumes tomorrow at ${fmt(ld.firstH, ld.firstM)}.</div>
+              <div class="no-trains-sub">Metro service has ended for the day.<br>Resumes tomorrow at ${fmt(firstRun.h, firstRun.m)}.</div>
             </div>
           </div>`;
         return;
@@ -812,7 +980,7 @@
         const depMin = toMin(t.h, t.m), diff = depMin - nowMin;
         const isPast = diff < -1, isNext = !isPast && firstUp;
         if (!isPast) firstUp = false;
-        const arrMin = depMin + travel;
+        const arrMin = t.arrH !== undefined ? toMin(t.arrH, t.arrM) : depMin + travel;
         const arrH = Math.floor(arrMin / 60) % 24, arrM = arrMin % 60;
         rows += `
           <div class="train-item ${isNext ? 'next-train' : ''}">
@@ -851,27 +1019,31 @@
         { station: INTERCHANGE_L2_L3, lines: [2, 3] },
         { station: INTERCHANGE_L3_L4, lines: [3, 4] },
       ];
-      for (const ix of interchanges) {
-        const srcLine = srcLines.find(l => ix.lines.includes(l));
-        const dstLine = dstLines.find(l => ix.lines.includes(l));
-        if (srcLine && dstLine && srcLine !== dstLine) {
-          return [{ from: src, to: ix.station, line: srcLine }, { from: ix.station, to: dst, line: dstLine }];
+      const queue = srcLines.map(line => ({ line, steps: [] }));
+      const seen = new Set(srcLines);
+      while (queue.length) {
+        const current = queue.shift();
+        if (dstLines.includes(current.line)) {
+          const route = [];
+          let fromStation = src;
+          current.steps.forEach(step => {
+            route.push({ from: fromStation, to: step.station, line: step.fromLine });
+            fromStation = step.station;
+          });
+          route.push({ from: fromStation, to: dst, line: current.line });
+          return route;
         }
-      }
-      for (const ix1 of interchanges) {
-        for (const ix2 of interchanges) {
-          if (ix1 === ix2) continue;
-          const srcLine = srcLines.find(l => ix1.lines.includes(l));
-          const midLine = ix1.lines.find(l => ix2.lines.includes(l));
-          const dstLine = dstLines.find(l => ix2.lines.includes(l));
-          if (srcLine && midLine && dstLine && srcLine !== midLine && midLine !== dstLine) {
-            return [
-              { from: src, to: ix1.station, line: srcLine },
-              { from: ix1.station, to: ix2.station, line: midLine },
-              { from: ix2.station, to: dst, line: dstLine }
-            ];
-          }
-        }
+        interchanges.forEach(ix => {
+          if (!ix.lines.includes(current.line)) return;
+          ix.lines.forEach(nextLine => {
+            if (nextLine === current.line || seen.has(nextLine)) return;
+            seen.add(nextLine);
+            queue.push({
+              line: nextLine,
+              steps: current.steps.concat({ station: ix.station, fromLine: current.line })
+            });
+          });
+        });
       }
       return null;
     }
@@ -938,10 +1110,10 @@ async function initAds() {
     await AdMob.initialize();
 
     await AdMob.showBanner({
-      adId: 'ca-app-pub-7446345883115528/3258450277', // ✅ TEST ID
+      adId: 'ca-app-pub-3940256099942544/6300978111', // ✅ TEST ID
       adSize: 'BANNER',
       position: 'BOTTOM_CENTER',
-      isTesting: false
+      isTesting: true
     });
 
   } catch (e) {
