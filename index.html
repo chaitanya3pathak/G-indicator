@@ -635,7 +635,7 @@
     const LINE4 = ["GNLU","PDEU","Gift City"];
 
     const INTERCHANGE_L1_L2 = "Old High Court";
-    const INTERCHANGE_L2_L3 = "Motera Stadium";
+    const INTERCHANGE_L2_L3 = "Koteshwar Road";
     const INTERCHANGE_L3_L4 = "GNLU";
 
     const LINE_DATA = {
@@ -1070,6 +1070,7 @@
         return;
       }
       if (route.length === 1) {
+        intSec.innerHTML = `<div class="interchange-banner" style="background:#e8f5e9;border-color:#66bb6a;"><div class="interchange-title" style="color:#2e7d32;">&#10003; No Interchange Required</div><div class="step-text" style="color:#388e3c;">You can travel directly without changing trains.</div></div>`;
         renderTrains(src, dst, route[0].line, 'results-section');
       } else {
         let steps = '';
