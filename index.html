@@ -934,6 +934,76 @@
       }
       return times;
     }
+
+    // ── [NEW] Train-Service-Based Interchange Coverage ──────────────────────
+    // Determines whether an actual upcoming train (per EXACT_TIMETABLE data)
+    // departing near `src` continues all the way to `dst`, even when `src`
+    // and `dst` sit on different lines connected via the Koteshwar Road
+    // interchange (Line 2 <-> Line 3). If such a train exists, the journey
+    // does not require an interchange. Otherwise, returns the real terminal
+    // station of the next available train so the UI can explain why an
+    // interchange is needed.
+    function getActualTrainCoverage(src, dst) {
+      const srcLines = STATION_LINES[src] || [];
+      const dstLines = STATION_LINES[dst] || [];
+      const crossesL2L3 = srcLines.some(l => l === 2 || l === 3) && dstLines.some(l => l === 2 || l === 3);
+      if (!crossesL2L3) return null;
+
+      // Direction is determined by each station's position within its own
+      // line relative to the shared Koteshwar Road interchange: travelling
+      // from a Line 2 station towards Koteshwar Road (or beyond into Line 3)
+      // is "forward" (APMC -> Gift City direction); the reverse is "reverse".
+      const srcOnLine2 = srcLines.includes(2);
+      const srcLineNum = srcOnLine2 ? 2 : 3;
+      const dir = srcOnLine2
+        ? directionFor(src, INTERCHANGE_L2_L3, 2)
+        : (directionFor(INTERCHANGE_L2_L3, src, 3) === 'forward' ? 'reverse' : 'forward');
+
+      const rows = dir === 'forward' ? EXACT_TIMETABLE_FORWARD : EXACT_TIMETABLE_REVERSE;
+      const stops = dir === 'forward' ? EXACT_TIMETABLE_STOPS : EXACT_TIMETABLE_REVERSE_STOPS;
+
+      const now = new Date(), nowMin = toMin(now.getHours(), now.getMinutes());
+      // Use exactStationMinute (existing helper) so non-anchor stations like
+      // "Sabarmati" still resolve to a real departure time via interpolation
+      // from the nearest anchor stop, exactly as the rest of the app does.
+      let bestRow = null, bestDepMin = Infinity;
+      rows.forEach(row => {
+        const map = rowMap(row, stops);
+        const depMin = exactStationMinute(map, src, srcLineNum, dir);
+        if (depMin !== null && depMin >= nowMin - 1 && depMin < bestDepMin) {
+          bestDepMin = depMin;
+          bestRow = map;
+        }
+      });
+      if (!bestRow) return null;
+
+      // Find the train's real terminal: the last anchor stop (in travel
+      // order) that this specific train actually serves.
+      const srcAnchorPos = stops.indexOf(src);
+      let terminalStop = stops[0];
+      const searchFrom = srcAnchorPos === -1 ? 0 : srcAnchorPos;
+      for (let i = searchFrom; i < stops.length; i++) {
+        if (bestRow[stops[i]]) terminalStop = stops[i];
+      }
+
+      // Compare positions along the full ordered line sequence (not just the
+      // exact-timetable anchor columns) so intermediate stations such as
+      // "Sabarmati" that aren't anchor columns are still handled correctly.
+      const fullSeq = dir === 'forward'
+        ? [...LINE2, ...LINE3.slice(1), ...LINE4.slice(1)]
+        : [...LINE4.slice(1)].reverse().concat([...LINE3].reverse(), [...LINE2.slice(0, -1)].reverse());
+      const srcFullPos = fullSeq.indexOf(src);
+      const dstFullPos = fullSeq.indexOf(dst);
+      const terminalFullPos = fullSeq.indexOf(terminalStop);
+      if (srcFullPos === -1 || dstFullPos === -1 || terminalFullPos === -1) {
+        return { covered: false, terminal: terminalStop };
+      }
+      const covered = dstFullPos >= srcFullPos
+        ? dstFullPos <= terminalFullPos
+        : dstFullPos >= terminalFullPos;
+
+      return covered ? { covered: true, terminal: dst } : { covered: false, terminal: terminalStop };
+    }
     function travelMins(src, dst, lineNum) {
       const list = LINE_DATA[lineNum].stations;
       const si = list.indexOf(src), di = list.indexOf(dst);
@@ -1073,8 +1143,38 @@
         intSec.innerHTML = `<div class="interchange-banner" style="background:#e8f5e9;border-color:#66bb6a;"><div class="interchange-title" style="color:#2e7d32;">&#10003; No Interchange Required</div><div class="step-text" style="color:#388e3c;">You can travel directly without changing trains.</div></div>`;
         renderTrains(src, dst, route[0].line, 'results-section');
       } else {
+        // [NEW] Train-service-based check: any adjacent pair of segments that
+        // meet at the Koteshwar Road (L2<->L3) interchange may actually be
+        // served by a single physical train. Verify actual coverage and,
+        // when confirmed, merge the pair into one segment so the displayed
+        // route no longer claims a false interchange at Koteshwar Road.
+        let mergedRoute = route;
+        let directNotice = false;
+        let blockedAt = null;
+        for (let i = 0; i < mergedRoute.length - 1; i++) {
+          const a = mergedRoute[i], b = mergedRoute[i + 1];
+          if (a.to === INTERCHANGE_L2_L3 && b.from === INTERCHANGE_L2_L3) {
+            const coverage = getActualTrainCoverage(a.from, b.to);
+            if (coverage && coverage.covered) {
+              const merged = { from: a.from, to: b.to, line: a.line };
+              mergedRoute = mergedRoute.slice(0, i).concat([merged], mergedRoute.slice(i + 2));
+              if (mergedRoute.length === 1) directNotice = true;
+              break;
+            } else if (coverage && !coverage.covered) {
+              blockedAt = coverage.terminal;
+            }
+          }
+        }
+
+        if (directNotice) {
+          intSec.innerHTML = `<div class="interchange-banner" style="background:#e8f5e9;border-color:#66bb6a;"><div class="interchange-title" style="color:#2e7d32;">&#10003; Direct train available</div><div class="step-text" style="color:#388e3c;">No interchange required.</div></div>`;
+          renderTrains(src, dst, mergedRoute[0].line, 'results-section');
+          return;
+        }
+
+        const route2 = mergedRoute;
         let steps = '';
-        route.forEach((seg, i) => {
+        route2.forEach((seg, i) => {
           const ld = LINE_DATA[seg.line];
           if (i === 0) {
             steps += `<div class="interchange-step"><div class="step-num">1</div><div class="step-text">Board <strong>${ld.label}</strong><span class="line-pill ${ld.pill}">${ld.shortLabel}</span> at <strong>${seg.from}</strong> towards <strong>${seg.to}</strong> (~${travelMins(seg.from, seg.to, seg.line)} min)</div></div>`;
@@ -1083,14 +1183,14 @@
             steps += `<div class="interchange-step"><div class="step-num">${i + 1}</div><div class="step-text">At <strong>${seg.from}</strong>, change to <strong>${ld2.label}</strong><span class="line-pill ${ld2.pill}">${ld2.shortLabel}</span> towards <strong>${seg.to}</strong> (~${travelMins(seg.from, seg.to, seg.line)} min)</div></div>`;
           }
         });
-        intSec.innerHTML = `<div class="interchange-banner"><div class="interchange-title">&#128260; Interchange Required</div>${steps}</div>`;
+        intSec.innerHTML = `<div class="interchange-banner"><div class="interchange-title">${blockedAt ? `&#9888; Interchange required at ${blockedAt}. This train terminates at ${blockedAt}.` : '&#128260; Interchange Required'}</div>${steps}</div>`;
         let segHTML = '';
-        route.forEach((seg, i) => {
+        route2.forEach((seg, i) => {
           const ld = LINE_DATA[seg.line];
           segHTML += `<div class="seg-label" style="color:${ld.segColor};">Segment ${i + 1} &mdash; ${ld.label}</div><div id="seg${i}"></div>`;
         });
         resSec.innerHTML = segHTML;
-        route.forEach((seg, i) => { renderTrains(seg.from, seg.to, seg.line, `seg${i}`); });
+        route2.forEach((seg, i) => { renderTrains(seg.from, seg.to, seg.line, `seg${i}`); });
       }
     }
 
